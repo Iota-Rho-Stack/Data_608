@@ -7,7 +7,7 @@
 # 
 # PLUTO data can be downloaded from [here](https://www1.nyc.gov/site/planning/data-maps/open-data/dwn-pluto-mappluto.page). Unzip them to the same directory as this notebook, and you should be able to read them in using this (or very similar) code. Also take note of the data dictionary, it'll come in handy for this assignment.
 
-# In[1]:
+# In[2]:
 
 
 import datashader as ds
@@ -42,7 +42,7 @@ from IPython.display import GeoJSON
 py.init_notebook_mode()
 
 
-# In[2]:
+# In[3]:
 
 
 # Code to read in v17, column names have been updated (without upper case letters) for v18
@@ -66,7 +66,7 @@ ny = ny[(ny['yearbuilt'] > 1850) & (ny['yearbuilt'] < 2020) & (ny['numfloors'] !
 # 
 # You're not required to know how I'm retrieving the lattitude and longitude here, but for those interested: this dataset uses a flat x-y projection (assuming for a small enough area that the world is flat for easier calculations), and this needs to be projected back to traditional lattitude and longitude.
 
-# In[3]:
+# In[4]:
 
 
 
@@ -91,7 +91,7 @@ cm = partial(colormap_select, reverse=(background!="black"))
 # 
 # While these visualization types explicitly include binning, any type of visualization used with aggregated data can be looked at in the same way. For example, lets say we wanted to look at building construction over time. This would be best viewed as a line graph, but we can still think of our results as being binned by year:
 
-# In[4]:
+# In[5]:
 
 
 trace = go.Scatter(
@@ -140,7 +140,7 @@ fig
 # 
 # After a few building collapses, the City of New York is going to begin investigating older buildings for safety. The city is particularly worried about buildings that were unusually tall when they were built, since best-practices for safety hadn’t yet been determined. Create a graph that shows how many buildings of a certain number of floors were built in each year (note: you may want to use a log scale for the number of buildings). Find a strategy to bin buildings (It should be clear 20-29-story buildings, 30-39-story buildings, and 40-49-story buildings were first built in large numbers, but does it make sense to continue in this way as you get taller?)
 
-# In[5]:
+# In[6]:
 
 
 # Start your answer here, inserting more cells as you go along
@@ -164,7 +164,7 @@ fig.update_layout(
 fig.show()
 
 
-# In[6]:
+# In[7]:
 
 
 fig = go.Figure(go.Histogram2d(x=x, y=y,
@@ -190,7 +190,7 @@ fig.show()
 # 
 # As an example, lets continue with our question above and look at a 2D histogram of YearBuilt vs NumFloors:
 
-# In[7]:
+# In[8]:
 
 
 yearbins = 200
@@ -218,7 +218,7 @@ fig
 # 
 # 
 
-# In[8]:
+# In[9]:
 
 
 cvs = ds.Canvas(800, 500, x_range = (ny['yearbuilt'].min(), ny['yearbuilt'].max()), 
@@ -232,7 +232,7 @@ export(tf.spread(view, px=2), 'yearvsnumfloors')
 # 
 # Datashader really shines when looking at geographic information. Here are the latitudes and longitudes of our dataset plotted out, giving us a map of the city colored by density of structures:
 
-# In[9]:
+# In[34]:
 
 
 NewYorkCity   = (( 913164.0,  1067279.0), (120966.0, 272275.0))
@@ -252,28 +252,15 @@ export(tf.spread(view, px=2), 'firery')
 # 
 # Datashader is really cool, but it's not that great at labeling your visualization. Don't worry about providing a legend, but provide a quick explanation as to which areas of the city are overbuilt, which areas are underbuilt, and which areas are built in a way that's properly correlated with their land value.
 
-# In[22]:
+# In[94]:
 
 
+# NYC: Land Value as proportion of Total Value
 NewYorkCity   = (( 913164.0,  1067279.0), (120966.0, 272275.0))
 cvs = ds.Canvas(700, 700, *NewYorkCity)
-agg = cvs.points(ny, 'xcoord', 'ycoord')
-view = tf.shade(agg, cmap = cm(inferno), how='log')
+agg_TotalValue = cvs.points(ny, 'xcoord', 'ycoord', agg=ds.sum(column='assesstot'))
+agg_LandValue = cvs.points(ny, 'xcoord', 'ycoord', agg=ds.sum(column='assessland'))
+agg = agg_LandValue/agg_TotalValue
+view = tf.shade(agg, cmap = cm(inferno,0.1), how='linear')
 export(tf.spread(view, px=2), 'firery')
-
-
-# In[39]:
-
-
-cvs = ds.Canvas (1000, 1000, x_range = (ny['assessland'].min(), ny['assessland'].max()), 
-                                y_range = (ny['assesstot'].min(), ny['assesstot'].max()))
-agg = cvs.points(ny, 'assessland', 'assesstot')
-view = tf.shade(agg, cmap =['yellow','red'], how='log')
-export(tf.spread(view, px=5), 'firery')
-
-
-# In[ ]:
-
-
-
 
